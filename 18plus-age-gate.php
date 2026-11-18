@@ -5,9 +5,9 @@
  * Version: 1.1
  * Author: CyborgRider
  * License: GPLv2 or later.
- * Text Domain: wp_age-gate
+ * Text Domain: 18plus-age-gate
  *
- * Install: drop the entire wp_age-gate folder into /wp-content/plugins/
+ * Install: drop the entire 18plus-age-gate folder into /wp-content/plugins/
  * (Or download from the WordPress Plugin Store!), then activate it in Plugins.
  * Configure under Settings -> Age Gate.
  */
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SAG_OPTION', 'sag_settings' );
-define( 'SAG_MENU_SLUG', 'selective-age-gate' );
+define( 'SAG_MENU_SLUG', '18plus-age-gate' );
 
 /* -------------------------------------------------------------------------
  * Settings storage
@@ -34,10 +34,10 @@ function sag_defaults() {
 		'tags'          => array(),            // Tag term IDs to gate.
 		'cookie_name'   => 'smut_verified',
 		'cookie_days'   => 365,
-		'popup_title'   => __( 'Are you 18 or older?', 'selective-age-gate' ),
-		'popup_text'    => __( 'This post contains content intended for adults. Please confirm your age to continue.', 'selective-age-gate' ),
-		'yes_label'     => __( 'Yes', 'selective-age-gate' ),
-		'no_label'      => __( 'No', 'selective-age-gate' ),
+		'popup_title'   => __( 'Are you 18 or older?', '18plus-age-gate' ),
+		'popup_text'    => __( 'This post contains content intended for adults. Please confirm your age to continue.', '18plus-age-gate' ),
+		'yes_label'     => __( 'Yes', '18plus-age-gate' ),
+		'no_label'      => __( 'No', '18plus-age-gate' ),
 		'redirect_mode' => 'page',            // 'page' or 'url'.
 		'redirect_page' => 0,                 // Page ID to send "No" visitors to.
 		'redirect_url'  => '',                // Or a custom URL.
@@ -260,8 +260,8 @@ window.SAG_CFG = <?php echo wp_json_encode( $cfg ); ?>;
  */
 function sag_register_admin_menu() {
 	add_options_page(
-		__( 'Age Gate', 'selective-age-gate' ),
-		__( 'Age Gate', 'selective-age-gate' ),
+		__( 'Age Gate', '18plus-age-gate' ),
+		__( 'Age Gate', '18plus-age-gate' ),
 		'manage_options',
 		SAG_MENU_SLUG,
 		'sag_render_settings_page'
@@ -283,23 +283,23 @@ function sag_register_settings() {
 		)
 	);
 
-	add_settings_section( 'sag_section_content', __( 'Popup content', 'selective-age-gate' ), '__return_false', SAG_MENU_SLUG );
-	add_settings_section( 'sag_section_selection', __( 'What should be age-gated?', 'selective-age-gate' ), '__return_false', SAG_MENU_SLUG );
-	add_settings_section( 'sag_section_behavior', __( 'Behavior', 'selective-age-gate' ), '__return_false', SAG_MENU_SLUG );
+	add_settings_section( 'sag_section_content', __( 'Popup content', '18plus-age-gate' ), '__return_false', SAG_MENU_SLUG );
+	add_settings_section( 'sag_section_selection', __( 'What should be age-gated?', '18plus-age-gate' ), '__return_false', SAG_MENU_SLUG );
+	add_settings_section( 'sag_section_behavior', __( 'Behavior', '18plus-age-gate' ), '__return_false', SAG_MENU_SLUG );
 
-	add_settings_field( 'popup_title', __( 'Popup title', 'selective-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'popup_title' ) );
-	add_settings_field( 'popup_text', __( 'Popup message', 'selective-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'popup_text', 'long' => true ) );
-	add_settings_field( 'yes_label', __( '"Yes" button label', 'selective-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'yes_label' ) );
-	add_settings_field( 'no_label', __( '"No" button label', 'selective-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'no_label' ) );
+	add_settings_field( 'popup_title', __( 'Popup title', '18plus-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'popup_title' ) );
+	add_settings_field( 'popup_text', __( 'Popup message', '18plus-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'popup_text', 'long' => true ) );
+	add_settings_field( 'yes_label', __( '"Yes" button label', '18plus-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'yes_label' ) );
+	add_settings_field( 'no_label', __( '"No" button label', '18plus-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'no_label' ) );
 
-	add_settings_field( 'gated_posts', __( 'Individual posts', 'selective-age-gate' ), 'sag_field_posts', SAG_MENU_SLUG, 'sag_section_selection' );
-	add_settings_field( 'gated_pages', __( 'Individual pages', 'selective-age-gate' ), 'sag_field_pages', SAG_MENU_SLUG, 'sag_section_selection' );
-	add_settings_field( 'gated_categories', __( 'Categories', 'selective-age-gate' ), 'sag_field_categories', SAG_MENU_SLUG, 'sag_section_selection' );
-	add_settings_field( 'gated_tags', __( 'Tags', 'selective-age-gate' ), 'sag_field_tags', SAG_MENU_SLUG, 'sag_section_selection' );
+	add_settings_field( 'gated_posts', __( 'Individual posts', '18plus-age-gate' ), 'sag_field_posts', SAG_MENU_SLUG, 'sag_section_selection' );
+	add_settings_field( 'gated_pages', __( 'Individual pages', '18plus-age-gate' ), 'sag_field_pages', SAG_MENU_SLUG, 'sag_section_selection' );
+	add_settings_field( 'gated_categories', __( 'Categories', '18plus-age-gate' ), 'sag_field_categories', SAG_MENU_SLUG, 'sag_section_selection' );
+	add_settings_field( 'gated_tags', __( 'Tags', '18plus-age-gate' ), 'sag_field_tags', SAG_MENU_SLUG, 'sag_section_selection' );
 
-	add_settings_field( 'redirect_target', __( 'Where "No" visitors go', 'selective-age-gate' ), 'sag_field_redirect', SAG_MENU_SLUG, 'sag_section_behavior' );
-	add_settings_field( 'cookie_lifetime', __( 'Remember choice for (days)', 'selective-age-gate' ), 'sag_field_cookie_days', SAG_MENU_SLUG, 'sag_section_behavior' );
-	add_settings_field( 'cookie_name', __( 'Cookie name (advanced)', 'selective-age-gate' ), 'sag_field_cookie_name', SAG_MENU_SLUG, 'sag_section_behavior' );
+	add_settings_field( 'redirect_target', __( 'Where "No" visitors go', '18plus-age-gate' ), 'sag_field_redirect', SAG_MENU_SLUG, 'sag_section_behavior' );
+	add_settings_field( 'cookie_lifetime', __( 'Remember choice for (days)', '18plus-age-gate' ), 'sag_field_cookie_days', SAG_MENU_SLUG, 'sag_section_behavior' );
+	add_settings_field( 'cookie_name', __( 'Cookie name (advanced)', '18plus-age-gate' ), 'sag_field_cookie_name', SAG_MENU_SLUG, 'sag_section_behavior' );
 }
 add_action( 'admin_init', 'sag_register_settings' );
 
@@ -393,7 +393,7 @@ function sag_render_checkbox_list( $type ) {
 
 	if ( empty( $items ) ) {
 		echo '<p class="description">' .
-			esc_html( 'page' === $type ? __( 'No pages found.', 'selective-age-gate' ) : __( 'No posts found.', 'selective-age-gate' ) ) .
+			esc_html( 'page' === $type ? __( 'No pages found.', '18plus-age-gate' ) : __( 'No posts found.', '18plus-age-gate' ) ) .
 			'</p>';
 		return;
 	}
@@ -401,7 +401,7 @@ function sag_render_checkbox_list( $type ) {
 	$list_id = ( 'page' === $type ) ? 'sag-page-list' : 'sag-post-list';
 	?>
 	<input type="search" class="regular-text sag-tree-filter" data-target="<?php echo esc_attr( $list_id ); ?>"
-		placeholder="<?php esc_attr_e( 'Filter by title…', 'selective-age-gate' ); ?>">
+		placeholder="<?php esc_attr_e( 'Filter by title…', '18plus-age-gate' ); ?>">
 	<div id="<?php echo esc_attr( $list_id ); ?>" class="sag-tree-box">
 	<?php
 	if ( 'page' === $type ) {
@@ -473,9 +473,9 @@ function sag_render_checkbox_list( $type ) {
 	<p class="description">
 		<?php
 		if ( 'page' === $type ) {
-			esc_html_e( 'Indented items are sub-pages. Checking a page gates every existing and future sub-page beneath it, no matter how deeply nested.', 'selective-age-gate' );
+			esc_html_e( 'Indented items are sub-pages. Checking a page gates every existing and future sub-page beneath it, no matter how deeply nested.', '18plus-age-gate' );
 		} else {
-			esc_html_e( 'Check each post you want to gate.', 'selective-age-gate' );
+			esc_html_e( 'Check each post you want to gate.', '18plus-age-gate' );
 		}
 		?>
 	</p>
@@ -505,7 +505,7 @@ function sag_field_categories() {
 	$selected = array_map( 'absint', (array) sag_get_settings()['categories'] );
 	$terms    = get_terms( array( 'taxonomy' => 'category', 'hide_empty' => false ) );
 	if ( is_wp_error( $terms ) || empty( $terms ) ) {
-		echo '<p class="description">' . esc_html__( 'No categories found.', 'selective-age-gate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'No categories found.', '18plus-age-gate' ) . '</p>';
 		return;
 	}
 
@@ -515,7 +515,7 @@ function sag_field_categories() {
 	}
 
 	echo '<p class="description" style="margin-top:0"><strong>' .
-		esc_html__( 'Selecting a category also gates every post in its subcategories — including posts you publish later.', 'selective-age-gate' ) .
+		esc_html__( 'Selecting a category also gates every post in its subcategories — including posts you publish later.', '18plus-age-gate' ) .
 		'</strong></p>';
 
 	$walk = function ( $parent_id, $depth ) use ( &$walk, $children, $selected ) {
@@ -544,7 +544,7 @@ function sag_field_tags() {
 	$selected = array_map( 'absint', (array) sag_get_settings()['tags'] );
 	$terms    = get_terms( array( 'taxonomy' => 'post_tag', 'hide_empty' => false ) );
 	if ( is_wp_error( $terms ) || empty( $terms ) ) {
-		echo '<p class="description">' . esc_html__( 'No tags found.', 'selective-age-gate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'No tags found.', '18plus-age-gate' ) . '</p>';
 		return;
 	}
 	foreach ( $terms as $term ) {
@@ -567,13 +567,13 @@ function sag_field_redirect() {
 	<fieldset>
 		<label style="display:block;margin-bottom:6px">
 			<input type="radio" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_mode]" value="page"<?php checked( $s['redirect_mode'], 'page' ); ?>>
-			<?php esc_html_e( 'Send them to a page:', 'selective-age-gate' ); ?>
+			<?php esc_html_e( 'Send them to a page:', '18plus-age-gate' ); ?>
 			<?php
 			wp_dropdown_pages(
 				array(
 					'name'             => SAG_OPTION . '[redirect_page]',
 					'selected'         => (int) $s['redirect_page'],
-					'show_option_none' => __( '— Select a page —', 'selective-age-gate' ),
+					'show_option_none' => __( '— Select a page —', '18plus-age-gate' ),
 					'post_type'        => 'page',
 					'post_status'      => 'publish',
 				)
@@ -582,10 +582,10 @@ function sag_field_redirect() {
 		</label>
 		<label style="display:block">
 			<input type="radio" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_mode]" value="url"<?php checked( $s['redirect_mode'], 'url' ); ?>>
-			<?php esc_html_e( 'Send them to this URL:', 'selective-age-gate' ); ?>
+			<?php esc_html_e( 'Send them to this URL:', '18plus-age-gate' ); ?>
 			<input type="url" class="regular-text" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_url]" value="<?php echo esc_attr( $s['redirect_url'] ); ?>" placeholder="https://www.cyborgwriter.us/age">
 		</label>
-		<p class="description"><?php esc_html_e( 'Tip: create a dedicated page such as "Sorry, this content is restricted" and select it here.', 'selective-age-gate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Tip: create a dedicated page such as "Sorry, this content is restricted" and select it here.', '18plus-age-gate' ); ?></p>
 	</fieldset>
 	<?php
 }
@@ -599,7 +599,7 @@ function sag_field_cookie_days() {
 		'<input type="number" min="1" max="3650" step="1" class="small-text" name="%1$s[cookie_days]" value="%2$d"> %3$s',
 		esc_attr( SAG_OPTION ),
 		(int) $s['cookie_days'],
-		esc_html__( 'days', 'selective-age-gate' )
+		esc_html__( 'days', '18plus-age-gate' )
 	);
 }
 
@@ -613,7 +613,7 @@ function sag_field_cookie_name() {
 		esc_attr( SAG_OPTION ),
 		esc_attr( $s['cookie_name'] )
 	);
-	echo '<p class="description">' . esc_html__( 'Only change this if you need to; renaming it resets everyone\'s saved choice.', 'selective-age-gate' ) . '</p>';
+	echo '<p class="description">' . esc_html__( 'Only change this if you need to; renaming it resets everyone\'s saved choice.', '18plus-age-gate' ) . '</p>';
 }
 
 /**
@@ -622,12 +622,12 @@ function sag_field_cookie_name() {
 function sag_render_settings_page() {
 	?>
 	<div class="wrap">
-		<h1><?php esc_html_e( 'Age Gate', 'selective-age-gate' ); ?></h1>
+		<h1><?php esc_html_e( 'Age Gate', '18plus-age-gate' ); ?></h1>
 		<form method="post" action="options.php">
 			<?php
 			settings_fields( 'sag_settings_group' );
 			do_settings_sections( SAG_MENU_SLUG );
-			submit_button( __( 'Save settings', 'selective-age-gate' ) );
+			submit_button( __( 'Save settings', '18plus-age-gate' ) );
 			?>
 		</form>
 	</div>
