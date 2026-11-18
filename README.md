@@ -3,7 +3,7 @@
 <img width="709" height="368" alt="image" src="https://github.com/user-attachments/assets/2302ecc6-a95c-4245-91d3-e2088b65edd8" />
 
 
-A highly customizable age gate for posts made within your wordpress site. 
+A highly customizable age gate plugin for posts and pages within your wordpress site.
 Optimal for sites that don't want to age gate the whole site, but who have sensitive content on select posts or pages of their site.
 This is a custom plugin that I made with the intention of adhering to minimum required age restriction laws in my area, and should only be used if a yes/no prompt is legally permissible in the area you're hosting from.
 I write smut sometimes, and wanted to be able to apply a category wide NSFW tag that would apply to any categories or sub-categories that I drop my stories into when writing. 
