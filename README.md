@@ -24,3 +24,6 @@ Simple is the keyword with this project. It does what I need it to. I hope it do
 5. Customizable timetable for cookies to confirm how long until the user gets a new prompt. Measured in days. Default: 365.
 
 6. Further customization includes the cookie Name. This should only be changed if you believe it would be funny for the guy who sniffs his cookies to see something labeled __you_dirty_boy__ or something to the like. Default is simply smut_verified
+
+# Installation:
+Simply download the .zip file and upload to your wordpress site from the admin portal!
