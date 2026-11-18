@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 18Plus Age Gate
  * Description: Shows an 18+ confirmation popup over selected posts AND pages. "Yes" saves a site-wide cookie; "No" redirects. Gating is selected via tree-style checklists: posts flat, pages hierarchically (sub-pages inherit), plus categories (subcategories inherit) and tags.
- * Version: 1.1
+ * Version: 1.0
  * Author: CyborgRider
  * License: GPLv2 or later.
  * Text Domain: 18plus-age-gate
