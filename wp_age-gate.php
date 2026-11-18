@@ -39,7 +39,7 @@ function sag_defaults() {
 		'no_label'      => __( 'No', 'selective-age-gate' ),
 		'redirect_mode' => 'page',            // 'page' or 'url'.
 		'redirect_page' => 0,                 // Page ID to send "No" visitors to.
-		'redirect_url'  => 'https://www.cyborgrider.us/age',                // Or a custom URL.
+		'redirect_url'  => '',                // Or a custom URL.
 	);
 }
 
@@ -451,7 +451,7 @@ function sag_field_redirect() {
 		<label style="display:block">
 			<input type="radio" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_mode]" value="url"<?php checked( $s['redirect_mode'], 'url' ); ?>>
 			<?php esc_html_e( 'Send them to this URL:', 'selective-age-gate' ); ?>
-			<input type="url" class="regular-text" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_url]" value="<?php echo esc_attr( $s['redirect_url'] ); ?>" placeholder="https://example.com/safe-page/">
+			<input type="url" class="regular-text" name="<?php echo esc_attr( SAG_OPTION ); ?>[redirect_url]" value="<?php echo esc_attr( $s['redirect_url'] ); ?>" placeholder="https://www.cyborgwriter.us/age">
 		</label>
 		<p class="description"><?php esc_html_e( 'Tip: create a dedicated page such as "Sorry, this content is restricted" and select it here.', 'selective-age-gate' ); ?></p>
 	</fieldset>
