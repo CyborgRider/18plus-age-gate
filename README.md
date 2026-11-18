@@ -7,10 +7,10 @@ A highly customizable age gate for posts made within your wordpress site.
 Optimal for sites that don't want to age gate the whole site, but who have sensitive content on select posts.
 This is a custom plugin that I made with the intention of adhering to minimum required age restriction laws in my area, and should only be used if a yes/no prompt is legally permissible in the area you're hosting from.
 I write smut sometimes, and wanted to be able to apply a category wide NSFW tag that would apply to any categories or sub-categories that I drop my stories into when writing. 
-This ONLY WORKS FOR POSTS, NOT THE FULL SITE. It WILL NOT cover pages.
+***This ONLY WORKS FOR POSTS, NOT THE FULL SITE. It WILL NOT cover pages.***
 I wanted to make this open-source and easy to access, so I'm going to be submitting this as an official plugin to Wordpress.org as well as the open source version being available and easy to make changes to from here.
 
-THERE IS NO PAID VERSION! THERE IS NO PAID SUPPORT! FREE AND OPEN SOURCE ONLY! This was a hobby project for me, and not something that I wanted to put too much effort into, nor stick behind a paywall. Because of that, there will likely only be updates when I notice that something broke on an update. Due to this being incredibly simple, it's unlikely to break, and therefor will not receive many updates.
+***THERE IS NO PAID VERSION! THERE IS NO PAID SUPPORT! FREE AND OPEN SOURCE ONLY!*** This was a hobby project for me, and not something that I wanted to put too much effort into, nor stick behind a paywall. Because of that, there will likely only be updates when I notice that something broke on an update. Due to this being incredibly simple, it's unlikely to break, and therefor will not receive many updates.
 
 If you would like to request functionality that is not here, or something is broken and you need assistance, add it to the Issues tab and I will see if it's something I think is worth the time to fix.
 
