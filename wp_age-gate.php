@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: CyborgRider's Simple Age Gate
- * Description: Shows an 18+ confirmation popup over selected posts AND pages. "Yes" saves a site-wide cookie; "No" redirects. Gating can be applied per-post/page, per-category/tag (posts), or per-parent page (sub-pages).
+ * Description: Shows an 18+ confirmation popup over selected posts AND pages. "Yes" saves a site-wide cookie; "No" redirects. Gating is selected via tree-style checklists: posts flat, pages hierarchically (sub-pages inherit), plus categories (subcategories inherit) and tags.
  * Version: 1.1
  * Author: CyborgRider
  * License: GPLv2 or later.
  * Text Domain: wp_age-gate
  *
  * Install: drop the entire wp_age-gate folder into /wp-content/plugins/
- * (or download from wordpress plugin store!), then activate it in Plugins.
+ * (Or download from the WordPress Plugin Store!), then activate it in Plugins.
  * Configure under Settings -> Age Gate.
  */
 
@@ -367,60 +367,133 @@ function sag_field_text( $args ) {
 }
 
 /**
- * Shared picker field: AJAX search + removable chips of currently
- * selected items. Used for both posts and pages.
+ * Shared checkbox-list renderer for posts and pages.
+ *
+ * Pages are rendered as an indented hierarchy (same visual style as the
+ * category tree). Posts are rendered as a flat alphabetical list, since
+ * posts have no parent/child structure. Both lists sit in a scrollable
+ * box with a client-side text filter above them.
  *
  * @param string $type Either 'post' or 'page'.
  */
-function sag_render_picker( $type ) {
+function sag_render_checkbox_list( $type ) {
 	$settings_key = ( 'page' === $type ) ? 'pages' : 'posts';
+	$selected     = array_map( 'absint', (array) sag_get_settings()[ $settings_key ] );
 
-	$s      = sag_get_settings();
-	$chosen = array();
-	foreach ( array_map( 'absint', (array) $s[ $settings_key ] ) as $pid ) {
-		$item = get_post( $pid );
-		if ( $item && ( 'page' === $type ) === ( 'page' === $item->post_type ) ) {
-			$title    = html_entity_decode( get_the_title( $item ), ENT_QUOTES );
-			$chosen[] = array( 'id' => $pid, 'title' => $title );
-		}
+	$items = get_posts(
+		array(
+			'post_type'      => $type,
+			'post_status'    => 'publish',
+			'numberposts'    => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
+		)
+	);
+
+	if ( empty( $items ) ) {
+		echo '<p class="description">' .
+			esc_html( 'page' === $type ? __( 'No pages found.', 'selective-age-gate' ) : __( 'No posts found.', 'selective-age-gate' ) ) .
+			'</p>';
+		return;
 	}
 
-	$dom_prefix = ( 'page' === $type ) ? 'sag-page' : 'sag-post';
+	$list_id = ( 'page' === $type ) ? 'sag-page-list' : 'sag-post-list';
 	?>
-	<input type="search" id="<?php echo esc_attr( $dom_prefix ); ?>-search" class="regular-text" autocomplete="off"
-		placeholder="<?php esc_attr_e( 'Type to search…', 'selective-age-gate' ); ?>">
-	<div id="<?php echo esc_attr( $dom_prefix ); ?>-results" class="sag-results"></div>
-	<div id="<?php echo esc_attr( $dom_prefix ); ?>-chips" class="sag-chips"></div>
-	<div id="<?php echo esc_attr( $dom_prefix ); ?>-hidden"></div>
-	<p class="description"><?php esc_html_e( 'Click a search result to add it. Click × on a chip to remove it.', 'selective-age-gate' ); ?></p>
-	<script type="application/json" class="sag-picker-init"><?php
-		echo wp_json_encode(
-			array(
-				'dom'   => $dom_prefix,
-				'type'  => $type,
-				'key'   => $settings_key,
-				'items' => $chosen,
-			)
-		);
-	?></script>
+	<input type="search" class="regular-text sag-tree-filter" data-target="<?php echo esc_attr( $list_id ); ?>"
+		placeholder="<?php esc_attr_e( 'Filter by title…', 'selective-age-gate' ); ?>">
+	<div id="<?php echo esc_attr( $list_id ); ?>" class="sag-tree-box">
+	<?php
+	if ( 'page' === $type ) {
+		// Build a parent -> children map and walk it like the category tree.
+		$children = array();
+		$by_id    = array();
+		foreach ( $items as $item ) {
+			$by_id[ (int) $item->ID ] = $item;
+			$children[ (int) $item->post_parent ][] = $item;
+		}
+
+		$walk = function ( $parent_id, $depth ) use ( &$walk, $children, $selected ) {
+			if ( empty( $children[ $parent_id ] ) ) {
+				return;
+			}
+			foreach ( $children[ $parent_id ] as $item ) {
+				printf(
+					'<label class="sag-tree-item" style="margin:%1$s"><input type="checkbox" name="%2$s[pages][]" value="%3$s"%4$s> %5$s</label>',
+					esc_attr( '2px 0 2px ' . ( $depth * 24 ) . 'px' ),
+					esc_attr( SAG_OPTION ),
+					esc_attr( $item->ID ),
+					checked( in_array( (int) $item->ID, $selected, true ), true, false ),
+					esc_html( get_the_title( $item ) )
+				);
+				$walk( (int) $item->ID, $depth + 1 );
+			}
+		};
+		$walk( 0, 0 );
+
+		// Orphaned items (parent is draft/private/trash but child published)
+		// would vanish from the tree walk — render them at top level so
+		// they remain selectable.
+		$rendered = array();
+		$collect  = function ( $parent_id ) use ( &$collect, $children, &$rendered ) {
+			if ( empty( $children[ $parent_id ] ) ) {
+				return;
+			}
+			foreach ( $children[ $parent_id ] as $item ) {
+				$rendered[] = (int) $item->ID;
+				$collect( (int) $item->ID );
+			}
+		};
+		$collect( 0 );
+		foreach ( $items as $item ) {
+			if ( ! in_array( (int) $item->ID, $rendered, true ) && (int) $item->post_parent !== 0 ) {
+				printf(
+					'<label class="sag-tree-item" style="margin:2px 0"><input type="checkbox" name="%1$s[pages][]" value="%2$s"%3$s> %4$s</label>',
+					esc_attr( SAG_OPTION ),
+					esc_attr( $item->ID ),
+					checked( in_array( (int) $item->ID, $selected, true ), true, false ),
+					esc_html( get_the_title( $item ) )
+				);
+			}
+		}
+	} else {
+		// Posts: flat alphabetical list.
+		foreach ( $items as $item ) {
+			printf(
+				'<label class="sag-tree-item" style="margin:2px 0"><input type="checkbox" name="%1$s[posts][]" value="%2$s"%3$s> %4$s</label>',
+				esc_attr( SAG_OPTION ),
+				esc_attr( $item->ID ),
+				checked( in_array( (int) $item->ID, $selected, true ), true, false ),
+				esc_html( get_the_title( $item ) )
+			);
+		}
+	}
+	?>
+	</div>
+	<p class="description">
+		<?php
+		if ( 'page' === $type ) {
+			esc_html_e( 'Indented items are sub-pages. Checking a page gates every existing and future sub-page beneath it, no matter how deeply nested.', 'selective-age-gate' );
+		} else {
+			esc_html_e( 'Check each post you want to gate.', 'selective-age-gate' );
+		}
+		?>
+	</p>
 	<?php
 }
 
 /**
- * Post picker field.
+ * Post checklist field.
  */
 function sag_field_posts() {
-	sag_render_picker( 'post' );
+	sag_render_checkbox_list( 'post' );
 }
 
 /**
- * Page picker field.
+ * Page tree checklist field.
  */
 function sag_field_pages() {
-	echo '<p class="description" style="margin-top:0"><strong>' .
-		esc_html__( 'Selecting a page also gates every existing and future sub-page beneath it, no matter how deeply nested.', 'selective-age-gate' ) .
-		'</strong></p>';
-	sag_render_picker( 'page' );
+	sag_render_checkbox_list( 'page' );
 }
 
 /**
@@ -544,8 +617,7 @@ function sag_field_cookie_name() {
 }
 
 /**
- * Full settings page markup, including the admin-side JS for the
- * post/page search pickers.
+ * Full settings page markup, including the JS for the tree filter boxes.
  */
 function sag_render_settings_page() {
 	?>
@@ -560,124 +632,23 @@ function sag_render_settings_page() {
 		</form>
 	</div>
 	<style>
-	.sag-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-	.sag-chip{display:inline-flex;align-items:center;gap:6px;background:#f0f0f1;border:1px solid #c3c4c7;border-radius:16px;padding:3px 6px 3px 12px;font-size:13px;line-height:1.6}
-	.sag-chip button{cursor:pointer;border:none;background:#d63638;color:#fff;border-radius:50%;width:18px;height:18px;font-size:12px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
-	.sag-results{max-width:480px}
-	.sag-result{display:block;width:100%;text-align:left;background:#fff;border:1px solid #c3c4c7;border-top:none;cursor:pointer;padding:6px 12px}
-	.sag-result:hover{background:#f0f6fc;border-color:#2271b1;color:#2271b1}
+	.sag-tree-box{max-height:320px;overflow-y:auto;border:1px solid #c3c4c7;border-radius:4px;padding:8px 12px;background:#fff;max-width:560px}
+	.sag-tree-item{display:block}
 	</style>
 	<script>
 	jQuery( function ( $ ) {
-		var nonce = '<?php echo esc_js( wp_create_nonce( 'sag_admin' ) ); ?>';
-		var optBase = '<?php echo esc_js( SAG_OPTION ); ?>';
-
-		$( '.sag-picker-init' ).each( function () {
-			var conf = JSON.parse( this.textContent );
-			var sel  = '#' + conf.dom;
-
-			var chipsEl  = $( sel + '-chips' );
-			var hiddenEl = $( sel + '-hidden' );
-			var resultsEl = $( sel + '-results' );
-			var searchEl = $( sel + '-search' );
-			var fieldName = optBase + '[' + conf.key + '][]';
-			var timer     = null;
-
-			function alreadySelected( id ) {
-				return hiddenEl.find( 'input[value="' + parseInt( id, 10 ) + '"]' ).length > 0;
-			}
-
-			function addChip( id, title ) {
-				id = parseInt( id, 10 );
-				if ( ! id || alreadySelected( id ) ) { return; }
-				hiddenEl.append( $( '<input>' ).attr( { type: 'hidden', name: fieldName, value: id } ) );
-				chipsEl.append(
-					$( '<span>' ).addClass( 'sag-chip' )
-						.attr( 'data-id', id )
-						.text( title )
-						.append( $( '<button>' ).attr( { type: 'button', title: 'Remove' } ).text( '\u00d7' ) )
-				);
-			}
-
-			chipsEl.on( 'click', '.sag-chip button', function () {
-				var chip = $( this ).closest( '.sag-chip' );
-				hiddenEl.find( 'input[value="' + parseInt( chip.data( 'id' ), 10 ) + '"]' ).remove();
-				chip.remove();
+		// Client-side filter for the post/page checkbox trees.
+		$( '.sag-tree-filter' ).on( 'input', function () {
+			var q    = $( this ).val().toLowerCase();
+			var list = $( '#' + $( this ).data( 'target' ) );
+			list.find( '.sag-tree-item' ).each( function () {
+				$( this ).toggle( '' === q || $( this ).text().toLowerCase().indexOf( q ) !== -1 );
 			} );
-
-			searchEl.on( 'input', function () {
-				var q = searchEl.val();
-				clearTimeout( timer );
-				resultsEl.empty();
-				if ( q.length < 2 ) { return; }
-				timer = setTimeout( function () {
-					$.get( ajaxurl, {
-						action: 'sag_search_posts',
-						q: q,
-						type: conf.type,
-						nonce: nonce
-					} ).done( function ( posts ) {
-						resultsEl.empty();
-						$.each( posts, function ( i, p ) {
-							$( '<button>' ).attr( 'type', 'button' )
-								.addClass( 'sag-result' )
-								.text( p.title )
-								.on( 'click', function () {
-									addChip( p.id, p.title );
-									resultsEl.empty();
-									searchEl.val( '' );
-								} )
-								.appendTo( resultsEl );
-						} );
-					} );
-				}, 300 );
-			} );
-
-			$.each( conf.items || [], function ( i, item ) { addChip( item.id, item.title ); } );
 		} );
 	} );
 	</script>
 	<?php
 }
-
-/**
- * AJAX handler for the post/page search boxes.
- */
-function sag_ajax_search_posts() {
-	if ( ! current_user_can( 'edit_posts' ) ) {
-		wp_send_json_error( 'insufficient_permissions', 403 );
-	}
-	check_ajax_referer( 'sag_admin', 'nonce' );
-
-	$q    = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
-	$type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'post';
-	// Only these two types are supported by this plugin's search.
-	$type = in_array( $type, array( 'post', 'page' ), true ) ? $type : 'post';
-
-	if ( strlen( $q ) < 2 ) {
-		wp_send_json_success( array() );
-	}
-
-	$query = new WP_Query(
-		array(
-			's'              => $q,
-			'post_type'      => $type,
-			'post_status'    => 'publish',
-			'posts_per_page' => 20,
-			'no_found_rows'  => true,
-		)
-	);
-
-	$results = array();
-	foreach ( $query->posts as $post ) {
-		$results[] = array(
-			'id'    => (int) $post->ID,
-			'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES ),
-		);
-	}
-	wp_send_json_success( $results );
-}
-add_action( 'wp_ajax_sag_search_posts', 'sag_ajax_search_posts' );
 
 /* -------------------------------------------------------------------------
  * Housekeeping
