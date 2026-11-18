@@ -6,7 +6,7 @@ I write smut sometimes, and wanted to be able to apply a category wide NSFW tag 
 This ONLY WORKS FOR POSTS, NOT THE FULL SITE. It WILL NOT cover pages.
 I wanted to make this open-source and easy to access, so I'm going to be submitting this as an official plugin to Wordpress.org as well as the open source version being available and easy to make changes to from here.
 
-THERE IS NO PAID VERSION! THERE IS NO PAID SUPPORT! This was a hobby project for me, and not something that I wanted to put too much effort into. Because of that, there will likely only be updates when I notice that something broke on an update. Due to this being incredibly simple, it's unlikely to break, and therefor will not receive many updates.
+THERE IS NO PAID VERSION! THERE IS NO PAID SUPPORT! FREE AND OPEN SOURCE ONLY! This was a hobby project for me, and not something that I wanted to put too much effort into, nor stick behind a paywall. Because of that, there will likely only be updates when I notice that something broke on an update. Due to this being incredibly simple, it's unlikely to break, and therefor will not receive many updates.
 
 If you would like to request functionality that is not here, or something is broken and you need assistance, add it to the Issues tab and I will see if it's something I think is worth the time to fix.
 
@@ -20,5 +20,4 @@ Simple is the keyword with this project. It does what I need it to. I hope it do
 4. Customizable redirection; send them to a specific page already on your site, or send them to a custom URL.
 5. Customizable timetable for cookies to confirm how long until the user gets a new prompt. Measured in days. Default: 365.
 
-6. Further customization includes the cookie Name. This should only be changed if you believe it would be funny for the guy who sniffs his cookies to see something labeled __you_dirty_boy__ or something to the like. Default is simply sag_age_verified
-
+6. Further customization includes the cookie Name. This should only be changed if you believe it would be funny for the guy who sniffs his cookies to see something labeled __you_dirty_boy__ or something to the like. Default is simply smut_verified
