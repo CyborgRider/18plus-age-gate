@@ -1,5 +1,5 @@
-CyborgRider's Simple Age Gate
-Stable tag: 1.1
+18Plus Age Gate
+Stable tag: 1.2.1
 License: GPLv2 or later.
 Tested up to: 7.1
 A highly customizable age gate for posts and pages made within your wordpress site.  Optimal for sites that don't want to age gate the whole site, but who have sensitive content on select posts or pages.
