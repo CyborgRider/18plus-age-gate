@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: CyborgRider's Simple Age Gate
- * Description: Shows an 18+ confirmation popup over selected posts. "Yes" saves a site-wide cookie; "No" redirects. Gating can be applied per-post, per-category, or per-tag.
- * Version: 1.0
+ * Description: Shows an 18+ confirmation popup over selected posts AND pages. "Yes" saves a site-wide cookie; "No" redirects. Gating can be applied per-post/page, per-category/tag (posts), or per-parent page (sub-pages).
+ * Version: 1.1
  * Author: CyborgRider
  * License: GPLv2 or later.
  * Text Domain: wp_age-gate
  *
  * Install: drop the entire wp_age-gate folder into /wp-content/plugins/
- * (the folder name and file name must match), then activate it in Plugins.
+ * (or download from wordpress plugin store!), then activate it in Plugins.
  * Configure under Settings -> Age Gate.
  */
 
@@ -29,6 +29,7 @@ define( 'SAG_MENU_SLUG', 'selective-age-gate' );
 function sag_defaults() {
 	return array(
 		'posts'         => array(),            // Post IDs to gate.
+		'pages'         => array(),            // Page IDs to gate (sub-pages inherit).
 		'categories'    => array(),            // Category term IDs to gate (children inherit).
 		'tags'          => array(),            // Tag term IDs to gate.
 		'cookie_name'   => 'smut_verified',
@@ -59,39 +60,62 @@ function sag_get_settings() {
  * ---------------------------------------------------------------------- */
 
 /**
- * Is a given post age-gated?
+ * Is a given post or page age-gated?
  *
- * A post is gated if:
+ * A POST is gated if:
  *  - Its ID was individually selected, OR
  *  - It has a selected tag, OR
  *  - It has a category whose ancestor chain (parent, grandparent, ...)
  *    includes a selected category. Subcategories therefore inherit
  *    their parent category's gating automatically.
  *
- * Because this check runs at render time, posts published AFTER the
- * settings were saved (including posts added to a gated category or tag)
- * are gated automatically with no extra action.
+ * A PAGE is gated if:
+ *  - Its ID was individually selected, OR
+ *  - It sits somewhere beneath a selected page. Sub-pages inherit
+ *    their parent page's gating automatically, at any depth.
+ *
+ * Because this check runs at render time, items published AFTER the
+ * settings were saved (including items added to a gated category, tag,
+ * or moved under a gated parent page) are gated automatically with no
+ * extra action.
  */
 function sag_is_post_gated( $post_id ) {
 	if ( empty( $post_id ) || ! is_numeric( $post_id ) ) {
 		return false;
 	}
 	$post_id = (int) $post_id;
-	$s       = sag_get_settings();
 
-	// 1. Individually selected posts.
+	$post = get_post( $post_id );
+	if ( ! $post ) {
+		return false;
+	}
+
+	$s = sag_get_settings();
+
+	// 1. Individually selected posts OR pages.
 	$posts = array_map( 'absint', (array) $s['posts'] );
 	if ( in_array( $post_id, $posts, true ) ) {
 		return true;
 	}
 
-	// 2. Tags.
+	// 2. Pages: inherit gating from the full parent chain (self + ancestors).
+	if ( 'page' === $post->post_type ) {
+		$selected_pages = array_map( 'absint', (array) $s['pages'] );
+		if ( empty( $selected_pages ) ) {
+			return false;
+		}
+		// get_ancestors() returns the parent chain, outermost first.
+		$chain = array_merge( array( $post_id ), array_map( 'absint', get_ancestors( $post_id, 'page' ) ) );
+		return (bool) array_intersect( $chain, $selected_pages );
+	}
+
+	// 3. Posts: tags.
 	$tag_ids = wp_get_post_terms( $post_id, 'post_tag', array( 'fields' => 'ids' ) );
 	if ( ! is_wp_error( $tag_ids ) && array_intersect( array_map( 'absint', $tag_ids ), array_map( 'absint', (array) $s['tags'] ) ) ) {
 		return true;
 	}
 
-	// 3. Categories, including full ancestor chains (subcategory inheritance).
+	// 4. Posts: categories, including full ancestor chains (subcategory inheritance).
 	$cat_ids = wp_get_post_terms( $post_id, 'category', array( 'fields' => 'ids' ) );
 	if ( is_wp_error( $cat_ids ) ) {
 		return false;
@@ -133,8 +157,8 @@ function sag_get_redirect_url( $s ) {
  * age gate must be injected for the current view.
  */
 function sag_maybe_init() {
-	if ( ! is_singular( 'post' ) ) {
-		return; // Gates apply to single post views.
+	if ( ! is_singular( array( 'post', 'page' ) ) ) {
+		return; // Gates apply to single post AND page views.
 	}
 	$post_id = get_queried_object_id();
 	if ( ! sag_is_post_gated( $post_id ) ) {
@@ -269,6 +293,7 @@ function sag_register_settings() {
 	add_settings_field( 'no_label', __( '"No" button label', 'selective-age-gate' ), 'sag_field_text', SAG_MENU_SLUG, 'sag_section_content', array( 'key' => 'no_label' ) );
 
 	add_settings_field( 'gated_posts', __( 'Individual posts', 'selective-age-gate' ), 'sag_field_posts', SAG_MENU_SLUG, 'sag_section_selection' );
+	add_settings_field( 'gated_pages', __( 'Individual pages', 'selective-age-gate' ), 'sag_field_pages', SAG_MENU_SLUG, 'sag_section_selection' );
 	add_settings_field( 'gated_categories', __( 'Categories', 'selective-age-gate' ), 'sag_field_categories', SAG_MENU_SLUG, 'sag_section_selection' );
 	add_settings_field( 'gated_tags', __( 'Tags', 'selective-age-gate' ), 'sag_field_tags', SAG_MENU_SLUG, 'sag_section_selection' );
 
@@ -291,7 +316,7 @@ function sag_sanitize_settings( $input ) {
 		}
 	}
 
-	$int_arrays = array( 'posts', 'categories', 'tags' );
+	$int_arrays = array( 'posts', 'pages', 'categories', 'tags' );
 	foreach ( $int_arrays as $key ) {
 		if ( isset( $input[ $key ] ) && is_array( $input[ $key ] ) ) {
 			$out[ $key ] = array_values( array_filter( array_unique( array_map( 'absint', wp_unslash( $input[ $key ] ) ) ) ) );
@@ -342,26 +367,60 @@ function sag_field_text( $args ) {
 }
 
 /**
- * Post selector: AJAX search + removable chips of currently selected posts.
+ * Shared picker field: AJAX search + removable chips of currently
+ * selected items. Used for both posts and pages.
+ *
+ * @param string $type Either 'post' or 'page'.
  */
-function sag_field_posts() {
+function sag_render_picker( $type ) {
+	$settings_key = ( 'page' === $type ) ? 'pages' : 'posts';
+
 	$s      = sag_get_settings();
 	$chosen = array();
-	foreach ( array_map( 'absint', (array) $s['posts'] ) as $pid ) {
-		$post = get_post( $pid );
-		if ( $post ) {
-			$chosen[] = array( 'id' => $pid, 'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES ) );
+	foreach ( array_map( 'absint', (array) $s[ $settings_key ] ) as $pid ) {
+		$item = get_post( $pid );
+		if ( $item && ( 'page' === $type ) === ( 'page' === $item->post_type ) ) {
+			$title    = html_entity_decode( get_the_title( $item ), ENT_QUOTES );
+			$chosen[] = array( 'id' => $pid, 'title' => $title );
 		}
 	}
+
+	$dom_prefix = ( 'page' === $type ) ? 'sag-page' : 'sag-post';
 	?>
-	<input type="search" id="sag-post-search" class="regular-text" autocomplete="off"
-		placeholder="<?php esc_attr_e( 'Type to search posts…', 'selective-age-gate' ); ?>">
-	<div id="sag-search-results" class="sag-results"></div>
-	<div id="sag-post-chips" class="sag-chips"></div>
-	<div id="sag-post-hidden"></div>
+	<input type="search" id="<?php echo esc_attr( $dom_prefix ); ?>-search" class="regular-text" autocomplete="off"
+		placeholder="<?php esc_attr_e( 'Type to search…', 'selective-age-gate' ); ?>">
+	<div id="<?php echo esc_attr( $dom_prefix ); ?>-results" class="sag-results"></div>
+	<div id="<?php echo esc_attr( $dom_prefix ); ?>-chips" class="sag-chips"></div>
+	<div id="<?php echo esc_attr( $dom_prefix ); ?>-hidden"></div>
 	<p class="description"><?php esc_html_e( 'Click a search result to add it. Click × on a chip to remove it.', 'selective-age-gate' ); ?></p>
-	<script id="sag-admin-init" type="application/json"><?php echo wp_json_encode( array( 'posts' => $chosen ) ); ?></script>
+	<script type="application/json" class="sag-picker-init"><?php
+		echo wp_json_encode(
+			array(
+				'dom'   => $dom_prefix,
+				'type'  => $type,
+				'key'   => $settings_key,
+				'items' => $chosen,
+			)
+		);
+	?></script>
 	<?php
+}
+
+/**
+ * Post picker field.
+ */
+function sag_field_posts() {
+	sag_render_picker( 'post' );
+}
+
+/**
+ * Page picker field.
+ */
+function sag_field_pages() {
+	echo '<p class="description" style="margin-top:0"><strong>' .
+		esc_html__( 'Selecting a page also gates every existing and future sub-page beneath it, no matter how deeply nested.', 'selective-age-gate' ) .
+		'</strong></p>';
+	sag_render_picker( 'page' );
 }
 
 /**
@@ -485,7 +544,8 @@ function sag_field_cookie_name() {
 }
 
 /**
- * Full settings page markup, including the admin-side JS for post search.
+ * Full settings page markup, including the admin-side JS for the
+ * post/page search pickers.
  */
 function sag_render_settings_page() {
 	?>
@@ -509,70 +569,79 @@ function sag_render_settings_page() {
 	</style>
 	<script>
 	jQuery( function ( $ ) {
-		var configEl = document.getElementById( 'sag-admin-init' );
-		var initial  = configEl ? JSON.parse( configEl.textContent ) : { posts: [] };
-		var chipsEl  = $( '#sag-post-chips' );
-		var hiddenEl = $( '#sag-post-hidden' );
-		var resultsEl = $( '#sag-search-results' );
-		var timer     = null;
+		var nonce = '<?php echo esc_js( wp_create_nonce( 'sag_admin' ) ); ?>';
+		var optBase = '<?php echo esc_js( SAG_OPTION ); ?>';
 
-		function alreadySelected( id ) {
-			return hiddenEl.find( 'input[value="' + parseInt( id, 10 ) + '"]' ).length > 0;
-		}
+		$( '.sag-picker-init' ).each( function () {
+			var conf = JSON.parse( this.textContent );
+			var sel  = '#' + conf.dom;
 
-		function addChip( id, title ) {
-			id = parseInt( id, 10 );
-			if ( ! id || alreadySelected( id ) ) { return; }
-			hiddenEl.append( $( '<input>' ).attr( { type: 'hidden', name: '<?php echo esc_js( SAG_OPTION ); ?>[posts][]', value: id } ) );
-			chipsEl.append(
-				$( '<span>' ).addClass( 'sag-chip' )
-					.attr( 'data-id', id )
-					.text( title )
-					.append( $( '<button>' ).attr( { type: 'button', title: 'Remove' } ).text( '\u00d7' ) )
-			);
-		}
+			var chipsEl  = $( sel + '-chips' );
+			var hiddenEl = $( sel + '-hidden' );
+			var resultsEl = $( sel + '-results' );
+			var searchEl = $( sel + '-search' );
+			var fieldName = optBase + '[' + conf.key + '][]';
+			var timer     = null;
 
-		chipsEl.on( 'click', '.sag-chip button', function () {
-			var chip = $( this ).closest( '.sag-chip' );
-			hiddenEl.find( 'input[value="' + parseInt( chip.data( 'id' ), 10 ) + '"]' ).remove();
-			chip.remove();
-		} );
+			function alreadySelected( id ) {
+				return hiddenEl.find( 'input[value="' + parseInt( id, 10 ) + '"]' ).length > 0;
+			}
 
-		$( '#sag-post-search' ).on( 'input', function () {
-			var q = $( this ).val();
-			clearTimeout( timer );
-			resultsEl.empty();
-			if ( q.length < 2 ) { return; }
-			timer = setTimeout( function () {
-				$.get( ajaxurl, {
-					action: 'sag_search_posts',
-					q: q,
-					nonce: '<?php echo esc_js( wp_create_nonce( 'sag_admin' ) ); ?>'
-				} ).done( function ( posts ) {
-					resultsEl.empty();
-					$.each( posts, function ( i, p ) {
-						$( '<button>' ).attr( 'type', 'button' )
-							.addClass( 'sag-result' )
-							.text( p.title )
-							.on( 'click', function () {
-								addChip( p.id, p.title );
-								resultsEl.empty();
-								$( '#sag-post-search' ).val( '' );
-							} )
-							.appendTo( resultsEl );
+			function addChip( id, title ) {
+				id = parseInt( id, 10 );
+				if ( ! id || alreadySelected( id ) ) { return; }
+				hiddenEl.append( $( '<input>' ).attr( { type: 'hidden', name: fieldName, value: id } ) );
+				chipsEl.append(
+					$( '<span>' ).addClass( 'sag-chip' )
+						.attr( 'data-id', id )
+						.text( title )
+						.append( $( '<button>' ).attr( { type: 'button', title: 'Remove' } ).text( '\u00d7' ) )
+				);
+			}
+
+			chipsEl.on( 'click', '.sag-chip button', function () {
+				var chip = $( this ).closest( '.sag-chip' );
+				hiddenEl.find( 'input[value="' + parseInt( chip.data( 'id' ), 10 ) + '"]' ).remove();
+				chip.remove();
+			} );
+
+			searchEl.on( 'input', function () {
+				var q = searchEl.val();
+				clearTimeout( timer );
+				resultsEl.empty();
+				if ( q.length < 2 ) { return; }
+				timer = setTimeout( function () {
+					$.get( ajaxurl, {
+						action: 'sag_search_posts',
+						q: q,
+						type: conf.type,
+						nonce: nonce
+					} ).done( function ( posts ) {
+						resultsEl.empty();
+						$.each( posts, function ( i, p ) {
+							$( '<button>' ).attr( 'type', 'button' )
+								.addClass( 'sag-result' )
+								.text( p.title )
+								.on( 'click', function () {
+									addChip( p.id, p.title );
+									resultsEl.empty();
+									searchEl.val( '' );
+								} )
+								.appendTo( resultsEl );
+						} );
 					} );
-				} );
-			}, 300 );
-		} );
+				}, 300 );
+			} );
 
-		$.each( initial.posts || [], function ( i, p ) { addChip( p.id, p.title ); } );
+			$.each( conf.items || [], function ( i, item ) { addChip( item.id, item.title ); } );
+		} );
 	} );
 	</script>
 	<?php
 }
 
 /**
- * AJAX handler for the post search box.
+ * AJAX handler for the post/page search boxes.
  */
 function sag_ajax_search_posts() {
 	if ( ! current_user_can( 'edit_posts' ) ) {
@@ -580,7 +649,11 @@ function sag_ajax_search_posts() {
 	}
 	check_ajax_referer( 'sag_admin', 'nonce' );
 
-	$q = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+	$q    = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+	$type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'post';
+	// Only these two types are supported by this plugin's search.
+	$type = in_array( $type, array( 'post', 'page' ), true ) ? $type : 'post';
+
 	if ( strlen( $q ) < 2 ) {
 		wp_send_json_success( array() );
 	}
@@ -588,8 +661,8 @@ function sag_ajax_search_posts() {
 	$query = new WP_Query(
 		array(
 			's'              => $q,
-			'post_type'       => 'post',
-			'post_status'     => 'publish',
+			'post_type'      => $type,
+			'post_status'    => 'publish',
 			'posts_per_page' => 20,
 			'no_found_rows'  => true,
 		)
