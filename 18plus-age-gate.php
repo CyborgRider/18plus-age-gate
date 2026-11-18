@@ -2,13 +2,13 @@
 /**
  * Plugin Name: CyborgRider's Simple Age Gate
  * Description: Shows an 18+ confirmation popup over selected posts AND pages. "Yes" saves a site-wide cookie; "No" redirects. Gating is selected via tree-style checklists: posts flat, pages hierarchically (sub-pages inherit), plus categories (subcategories inherit) and tags.
- * Version: 1.1
+ * Version: 1.2.1
  * Author: CyborgRider
  * License: GPLv2 or later.
  * Text Domain: 18plus-age-gate
  *
  * Install: drop the entire 18plus-age-gate folder into /wp-content/plugins/
- * (Or download from the WordPress Plugin Store!), then activate it in Plugins.
+ * (the folder name and file name must match), then activate it in Plugins.
  * Configure under Settings -> Age Gate.
  */
 
@@ -571,9 +571,9 @@ function sag_field_redirect() {
 			<?php
 			wp_dropdown_pages(
 				array(
-					'name'             => SAG_OPTION . '[redirect_page]',
+					'name'             => esc_attr( SAG_OPTION ) . '[redirect_page]',
 					'selected'         => (int) $s['redirect_page'],
-					'show_option_none' => __( '— Select a page —', '18plus-age-gate' ),
+					'show_option_none' => esc_html__( '— Select a page —', '18plus-age-gate' ),
 					'post_type'        => 'page',
 					'post_status'      => 'publish',
 				)
